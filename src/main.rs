@@ -460,7 +460,7 @@ fn handle_args(chip: &mut Chip) {
 
     // last arg should be the path of the binary
     if let Some(arg) = args.last() {
-        match chip.load_program(&arg) {
+        match chip.load_program(arg) {
             Ok(n) => {
                 println!("Loaded {n} Bytes from file '{arg}'.");
             },
