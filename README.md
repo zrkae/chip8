@@ -3,11 +3,11 @@ This is a pretty basic [CHIP-8](https://en.wikipedia.org/wiki/CHIP-8) interprete
 It was implemented using [this document](https://github.com/mattmikolay/chip-8/wiki/Mastering-CHIP%E2%80%908) as the reference.
 
 The interpreter part is done, the only things that are still "TODO":
-    - Audio (could be implemented using sdl mixer)
-    - Changing colors
-    - Turning hard-coded constants into cli options
-    - Maybe a nice menu, better pausing etc.
-
+- Audio (could be implemented using sdl mixer)
+- Changing colors
+- Turning hard-coded constants into cli options
+- Maybe a nice menu, better pausing etc.
+  
 But I'll leave that for a particularly rainy day :p
 
 ## Games for the emulator
