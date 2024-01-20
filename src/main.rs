@@ -1,11 +1,17 @@
 use std::io::{self, Read};
 use std::fs::File;
+use std::env;
+use std::cell::Cell;
 
 mod gfx;
 
 const LOAD_ADDR: u16 = 0x200;
 const SCREEN_HEIGHT: u32 = 32;
 const SCREEN_WIDTH: u32 = 64;
+
+thread_local! {
+    pub static VERBOSE_OUTPUT: Cell<bool> = Cell::new(false);
+}
 
 fn u16_from_nibbles_3(n1: u8, n2: u8, n3: u8) -> u16 {
     ((n1 as u16) << 8) + ((n2 as u16) << 4) + n3 as u16
@@ -106,7 +112,9 @@ impl Chip {
                        ((instr & 0x00F0) >> 4) as u8, 
                        (instr & 0x000F) as u8];
 
-        println!("[ip: {:X}]: {nibbles:X?}", self.ip);
+        if VERBOSE_OUTPUT.get() {
+            println!("[ip: {:X}]: {nibbles:X?}", self.ip);
+        }
 
         match nibbles {
             // clear the screen
@@ -282,7 +290,9 @@ impl Chip {
             // draw sprite at (reg[x],reg[y]) with n bytes of data from memory at addr_register
             // every sprite is eight pixels wide (because 8 bits in a byte)
             [0xD, x, y, n] => {
-                println!("DRAW CALL: ({},{}), h: {n}", self.data_regs[x as usize], self.data_regs[y as usize]);
+                if VERBOSE_OUTPUT.get() {
+                    println!("DRAW CALL: ({},{}), h: {n}", self.data_regs[x as usize], self.data_regs[y as usize]);
+                }
                 let mut set_flag = false;
 
                 let start_row = self.data_regs[y as usize];
@@ -415,13 +425,57 @@ impl Chip {
     }
 }
 
+fn die_usage(path: &String) -> ! {
+    eprintln!("\
+usage: ./{path} [OPTIONS..] [PATH]
+Options:
+    --help          Show this message
+    --verbose | -v  Verbose mode");
+    std::process::exit(1);
+}
+
+fn handle_args(chip: &mut Chip) {
+    let args: Vec<_> = env::args().collect();
+    let path = args.first().unwrap();
+
+    if args.len() == 1 {
+        die_usage(path);
+    }
+
+    // handle intermediate options
+    for arg in args.iter()
+        .skip(1)
+        .take(args.len() - 2) 
+    {
+        match arg.as_str() {
+            "--verbose" | "-v" => {
+                VERBOSE_OUTPUT.set(true);
+                println!("Verbose mode set.");
+            }
+            _ => {
+                die_usage(path);
+            } 
+        }
+    }
+
+    // last arg should be the path of the binary
+    if let Some(arg) = args.last() {
+        match chip.load_program(&arg) {
+            Ok(n) => {
+                println!("Loaded {n} Bytes from file '{arg}'.");
+            },
+            Err(e) => {
+                eprintln!("Couldn't load '{arg}' - {e}");
+                std::process::exit(1);
+            }
+        }
+    } else {
+        die_usage(path);
+    }
+}
+
 fn main() {
     let mut chip = Chip::default();
-
-    let n = chip.load_program("./test_opcode.ch8").unwrap();
-    println!("Loaded {n} Bytes.");
-
-    // handle args here, load program, etc
-    
+    handle_args(&mut chip);
     gfx::spawn_window(chip);
 }
